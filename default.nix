@@ -1,13 +1,18 @@
 final: prev:
 let
-  inherit (import ./migrate.nix final prev) migrate migrate-gui;
-  outputs = map (path: import path {
-    inherit final prev migrate migrate-gui;
-  }) (import ./pkgs);
+  util = import ./util.nix final prev;
+  callOverlay = path: import path {
+    inherit final prev;
+    inherit (util) migrate migrate-gui makeTransWrapper;
+  };
 in
-  builtins.foldl' (x: y: x // y) {} outputs // {
-    xdgify-overlay = {
-      enable-migrate = true;
-      migrate-gui-flavor = "kdialog";
-    };
-  }
+{
+  xdgify-overlay = {
+    enable-migrate = true;
+    migrate-gui-flavor = "kdialog";
+  };
+
+  inherit (callOverlay ./pkgs/electrum-like.nix) electrum electrum-ltc electron-cash;
+
+  sqlite = callOverlay ./pkgs/sqlite.nix;
+}

@@ -1,9 +1,11 @@
 final: prev:
 let
+  inherit (final) lib;
+
   enable = final.xdgify-overlay.enable-migrate;
   flavor = final.xdgify-overlay.migrate-gui-flavor;
 
-  script = final.writeShellScript "xdgify-migrate" ''
+  migrate-script = final.writeShellScript "xdgify-migrate" ''
     set -e
 
     gui=
@@ -82,7 +84,49 @@ let
     done
   '';
 
+  # Make a (nearly) transparent wrapper over a package.
+  #
+  # It overrides some outputs `overrideOuts` of the original package, keep some meta attributes,
+  # make `override{,Attrs}` applied to the original package (and wrap it after).
+  makeTransWrapper = pkg: overrideOuts: wrapper: let
+    opts = wrapper pkg;
+    parsed = builtins.parseDrvName pkg.name;
+
+    # Workaround. Since outputs must contains "out".
+    noOut = !lib.elem "out" overrideOuts;
+
+    command = opts.command + lib.optionalString noOut ''
+      touch "$out"
+    '';
+
+    opts' = {
+      outputs = overrideOuts ++ lib.optional noOut "out";
+      nativeBuildInputs = [ final.makeWrapper ] ++ (opts.nativeBuildInputs or []);
+
+      passthru = {
+        inherit (pkg) outputs;
+        override = arg: makeTransWrapper (pkg.override arg) overrideOuts wrapper;
+        overrideAttrs = arg: makeTransWrapper (pkg.overrideAttrs arg) overrideOuts wrapper;
+        __before_xdgify = pkg;
+
+      # Forward unchanged outputs (like libraries) to the original derivation.
+      } // lib.genAttrs (lib.subtractLists overrideOuts pkg.outputs) (out: pkg.${out});
+    }
+    // lib.optionalAttrs (pkg ? pname) { inherit (pkg) pname; }
+    // lib.optionalAttrs (pkg ? version) { inherit (pkg) version; }
+    // lib.optionalAttrs (pkg ? src) { inherit (pkg) src; }
+    // lib.optionalAttrs (pkg ? meta) { inherit (pkg) meta; }
+    // removeAttrs opts [ "nativeBuildInputs" "command" ];
+
+    wrapped = final.runCommandLocal "${parsed.name}-xdgify-${parsed.version}" opts' command;
+
+  in
+    # Currently we always overrides the default output.
+    assert lib.elem (lib.head pkg.outputs) overrideOuts;
+    wrapped;
+
 in rec {
-  migrate = if enable then "${script}" else ":";
+  migrate = if enable then "${migrate-script}" else ":";
   migrate-gui = "${migrate} --gui";
+  inherit makeTransWrapper;
 }
