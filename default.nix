@@ -15,4 +15,6 @@ in
   inherit (callOverlay ./pkgs/electrum-like.nix) electrum electrum-ltc electron-cash;
 
   sqlite = callOverlay ./pkgs/sqlite.nix;
+
+  weechat-unwrapped = callOverlay ./pkgs/weechat.nix;
 }
