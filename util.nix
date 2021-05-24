@@ -17,17 +17,21 @@ let
     srcs=()
     dests=()
     msg=
-    src_found=
     while [[ $# -ne 0 ]]; do
-      srcs+="$1"
-      dests+="$2"
-      msg+=$'\n'"$1 -> $2"
-      [[ -e "$1" ]] && src_found=1
+      if [[ "$1" != /* || "$2" != /* ]]; then
+        echo "xdgifiy-overlay: Paths must be absolute" >&2
+        exit 1
+      fi
+      if [[ -e "$1" ]]; then
+        srcs+=("$1")
+        dests+=("$2")
+        msg+=$'\n  '"$1 -> $2"
+      fi
       shift 2
     done
 
     # If no original paths found, we are okay.
-    [[ -z "$src_found" ]] && exit 0
+    [[ "''${#srcs[@]}" = 0 ]] && exit 0
 
     # Otherwise we should prompt to migrate.
 
@@ -75,11 +79,16 @@ let
     dialog_confirm_migrate "Migration required:$msg"
 
     for (( i = 0; i < "''${#srcs[@]}"; ++i )); do
-      if [[ -e "''${dests[i]}" ]]; then
-        dialog_error "Target path already exists: ''${dests[i]}"$'\n'"Please migrate manually."
+      src="''${srcs[i]}"
+      dest="''${dests[i]}"
+      if [[ -L "$src" ]]; then
+        dialog_error "Source path is a symbolic link: $src"$'\n'"Please migrate manually."
       fi
-      if ! ( mkdir -p "$(dirname "''${dests[i]}")" && mv -T "''${srcs[i]}" "''${dests[i]}" ); then
-        dialog_error "Move failed: ''${srcs[i]} -> ''${dests[i]}"$'\n'"Please migrate manually."
+      if [[ -e "$dest" ]]; then
+        dialog_error "Target path already exists: $dest"$'\n'"Please migrate manually."
+      fi
+      if ! ( mkdir -p "$(dirname "$dest")" && mv -T "$src" "$dest" ); then
+        dialog_error "Move failed: $src -> $dest"$'\n'"Please migrate manually."
       fi
     done
   '';
@@ -108,14 +117,15 @@ let
         override = arg: makeTransWrapper (pkg.override arg) overrideOuts wrapper;
         overrideAttrs = arg: makeTransWrapper (pkg.overrideAttrs arg) overrideOuts wrapper;
         __before_xdgify = pkg;
-
+      }
       # Forward unchanged outputs (like libraries) to the original derivation.
-      } // lib.genAttrs (lib.subtractLists overrideOuts pkg.outputs) (out: pkg.${out});
+      // lib.genAttrs (lib.subtractLists overrideOuts pkg.outputs) (out: pkg.${out})
+      # Forward common attributes here to avoid fetching `src` when building wrapper.
+      // lib.optionalAttrs (pkg ? pname) { inherit (pkg) pname; }
+      // lib.optionalAttrs (pkg ? version) { inherit (pkg) version; }
+      // lib.optionalAttrs (pkg ? src) { inherit (pkg) src; }
+      // lib.optionalAttrs (pkg ? meta) { inherit (pkg) meta; };
     }
-    // lib.optionalAttrs (pkg ? pname) { inherit (pkg) pname; }
-    // lib.optionalAttrs (pkg ? version) { inherit (pkg) version; }
-    // lib.optionalAttrs (pkg ? src) { inherit (pkg) src; }
-    // lib.optionalAttrs (pkg ? meta) { inherit (pkg) meta; }
     // removeAttrs opts [ "nativeBuildInputs" "command" ];
 
     wrapped = final.runCommandLocal "${parsed.name}-xdgify-${parsed.version}" opts' command;
