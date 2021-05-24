@@ -19,7 +19,7 @@ let
     msg=
     while [[ $# -ne 0 ]]; do
       if [[ "$1" != /* || "$2" != /* ]]; then
-        echo "xdgifiy-overlay: Paths must be absolute" >&2
+        echo "xdgifiy-overlay: Paths must be absolute: $1 -> $2" >&2
         exit 1
       fi
       if [[ -e "$1" ]]; then
@@ -137,6 +137,5 @@ let
 
 in rec {
   migrate = if enable then "${migrate-script}" else ":";
-  migrate-gui = "${migrate} --gui";
   inherit makeTransWrapper;
 }

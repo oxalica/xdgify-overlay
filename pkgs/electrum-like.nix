@@ -1,4 +1,4 @@
-{ prev, final, makeTransWrapper, migrate-gui, ... }:
+{ prev, final, makeTransWrapper, migrate, ... }:
 let
   wrap = pkg: bin: makeTransWrapper pkg [ "out" ] (pkg: {
     command = ''
@@ -11,7 +11,7 @@ let
       fi
 
       makeWrapper ${pkg}/bin/${bin} $out/bin/${bin} \
-        --run '${migrate-gui} ~/.${bin} "''${XDG_DATA_HOME:-$HOME/.local/share}/${bin}"' \
+        --run '${migrate} --gui ~/.${bin} "''${XDG_DATA_HOME:-$HOME/.local/share}/${bin}"' \
         --add-flags "-D" \
         --add-flags '"''${XDG_DATA_HOME:-$HOME/.local/share}/${bin}"' \
 

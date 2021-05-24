@@ -3,7 +3,7 @@ let
   util = import ./util.nix final prev;
   callOverlay = path: import path {
     inherit final prev;
-    inherit (util) migrate migrate-gui makeTransWrapper;
+    inherit (util) migrate makeTransWrapper;
   };
 in
 {
