@@ -101,6 +101,8 @@ let
     opts = wrapper pkg;
     parsed = builtins.parseDrvName pkg.name;
 
+    name = "${parsed.name}-xdgify${lib.optionalString (parsed.version != "") "-${parsed.version}"}";
+
     # Workaround. Since outputs must contains "out".
     noOut = !lib.elem "out" overrideOuts;
 
@@ -124,11 +126,12 @@ let
       // lib.optionalAttrs (pkg ? pname) { inherit (pkg) pname; }
       // lib.optionalAttrs (pkg ? version) { inherit (pkg) version; }
       // lib.optionalAttrs (pkg ? src) { inherit (pkg) src; }
-      // lib.optionalAttrs (pkg ? meta) { inherit (pkg) meta; };
+      // lib.optionalAttrs (pkg ? meta) { inherit (pkg) meta; }
+      // (opts.passthru or {});
     }
-    // removeAttrs opts [ "nativeBuildInputs" "command" ];
+    // removeAttrs opts [ "nativeBuildInputs" "command" "passthru" ];
 
-    wrapped = final.runCommandLocal "${parsed.name}-xdgify-${parsed.version}" opts' command;
+    wrapped = final.runCommandLocal name opts' command;
 
   in
     # Currently we always overrides the default output.
