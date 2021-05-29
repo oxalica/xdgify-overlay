@@ -141,4 +141,5 @@ let
 in rec {
   migrate = if enable then "${migrate-script}" else ":";
   inherit makeTransWrapper;
+  preload_redirect = "${final.callPackage ./preload_redirect {}}/lib/libpreload_redirect.so";
 }
