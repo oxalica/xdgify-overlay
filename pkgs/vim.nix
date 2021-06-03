@@ -16,6 +16,9 @@ let
     set undodir=$XDG_CACHE_HOME/vim/undo
     set runtimepath=$XDG_DATA_HOME/vim,$VIM/vimfiles,$VIMRUNTIME,$VIM/vimfiles/after,$XDG_DATA_HOME/vim/after
     set viminfofile=$XDG_CACHE_HOME/vim/viminfo
+
+    let g:coc_config_home=$XDG_CONFIG_HOME."/vim"
+    let g:coc_data_home=$XDG_DATA_HOME."/vim"
   '';
 
   # This loads init scripts, but some paths are modified.
