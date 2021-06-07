@@ -35,7 +35,7 @@ let
       execute "source ".fnameescape($MYVIMRC)
     elseif !empty($EXINIT)
       execute $EXINIT
-    elseif !empty($XDG_CONFIG_HOME."/vim/exrc")
+    elseif filereadable($XDG_CONFIG_HOME."/vim/exrc")
       execute "source ".fnameescape($XDG_CONFIG_HOME."/vim/exrc")
     elseif filereadable($VIMRUNTIME."/defaults.vim")
       set nocompatible
